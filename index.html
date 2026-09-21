@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One-Time Pad (OTP) Cryptography Simulator</title>
+    <meta name="description" content="An interactive, mathematically rigorous One-Time Pad (OTP) cryptography simulator demonstrating perfect secrecy, bitwise XOR operations, key reuse vulnerabilities, and crib dragging attacks.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070a13;
+            --bg-card: rgba(15, 23, 42, 0.75);
+            --bg-card-hover: rgba(30, 41, 59, 0.8);
+            --border-color: rgba(56, 189, 248, 0.15);
+            --border-highlight: rgba(0, 242, 254, 0.4);
+            
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-purple: #7000ff;
+            --accent-pink: #f72585;
+            --accent-green: #00f5a0;
+            --accent-amber: #ff9f43;
+            --accent-red: #ff4757;
+
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-heading: 'Outfit', sans-serif;
+            --font-mono: 'Fira Code', monospace;
+
+            --shadow-glow-cyan: 0 0 25px rgba(0, 242, 254, 0.25);
+            --shadow-glow-purple: 0 0 25px rgba(112, 0, 255, 0.25);
+            --shadow-glow-red: 0 0 25px rgba(255, 71, 87, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(112, 0, 255, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(0, 242, 254, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.8) 0%, transparent 100%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-cyan);
+        }
+
+        /* Container & Layout */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            padding: 0.35rem 1rem;
+            border-radius: 50px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent-cyan);
+            margin-bottom: 1rem;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+        }
+
+        .logo-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            font-size: clamp(2.2rem, 4vw, 3.5rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, var(--accent-cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.75rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.2) 0%, rgba(112, 0, 255, 0.2) 100%);
+            color: #ffffff;
+            border: 1px solid var(--border-highlight);
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
+        }
+
+        /* Tab Content Panels */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards & Panels */
+        .glass-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.75rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-highlight), transparent);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title {
+            font-family: var(--font-heading);
+            font-size: 1.4rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: #ffffff;
+        }
+
+        .card-title svg {
+            color: var(--accent-cyan);
+        }
+
+        /* Form Controls & Inputs */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .meta-tag {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--text-muted);
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            background: rgba(7, 10, 19, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            transition: all 0.25s ease;
+            outline: none;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        /* Warning & Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 30px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+
+        .status-badge.valid {
+            background: rgba(0, 245, 160, 0.12);
+            border: 1px solid rgba(0, 245, 160, 0.3);
+            color: var(--accent-green);
+        }
+
+        .status-badge.invalid {
+            background: rgba(255, 71, 87, 0.12);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            color: var(--accent-red);
+            animation: shake 0.4s ease;
+        }
+
+        .status-badge.warning {
+            background: rgba(255, 159, 67, 0.12);
+            border: 1px solid rgba(255, 159, 67, 0.3);
+            color: var(--accent-amber);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            padding: 0.65rem 1.2rem;
+            border-radius: 10px;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%);
+            color: #070a13;
+            border: none;
+            font-weight: 700;
+            box-shadow: var(--shadow-glow-cyan);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #33f5ff 0%, #60b2fe 100%);
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, rgba(112, 0, 255, 0.3) 0%, rgba(247, 37, 133, 0.3) 100%);
+            border: 1px solid rgba(112, 0, 255, 0.4);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, rgba(112, 0, 255, 0.5) 0%, rgba(247, 37, 133, 0.5) 100%);
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Bitwise Matrix Table */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            background: rgba(7, 10, 19, 0.6);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--accent-cyan);
+            padding: 0.85rem 1rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            white-space: nowrap;
+        }
+
+        tr:hover td {
+            background: rgba(0, 242, 254, 0.04);
+        }
+
+        .binary-highlight {
+            color: var(--accent-green);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .xor-result-highlight {
+            color: var(--accent-cyan);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .char-pill {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* Bitwise Interactive Inspector Component */
+        .inspector-box {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .bits-visual-grid {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        .bit-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 0.5rem;
+            border-radius: 12px;
+            width: 55px;
+            transition: all 0.3s ease;
+        }
+
+        .bit-column.active {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+            transform: scale(1.05);
+        }
+
+        .bit-val {
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            font-weight: 700;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .bit-p { background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); }
+        .bit-k { background: rgba(112, 0, 255, 0.15); color: var(--accent-purple); }
+        .bit-xor { background: rgba(0, 245, 160, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+
+        .gate-icon {
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+
+        /* Crib Dragging Lab */
+        .crib-result-card {
+            background: rgba(7, 10, 19, 0.7);
+            border: 1px dashed var(--border-highlight);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .crib-match {
+            background: rgba(0, 245, 160, 0.2);
+            color: var(--accent-green);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        /* Cipher Comparison Table */
+        .comparison-table th {
+            text-align: center;
+        }
+        .comparison-table td {
+            text-align: center;
+        }
+        .comparison-table td:first-child {
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .check-icon { color: var(--accent-green); font-size: 1.1rem; }
+        .cross-icon { color: var(--accent-red); font-size: 1.1rem; }
+        .warn-icon { color: var(--accent-amber); font-size: 1.1rem; }
+
+        /* Shannon Checklist */
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.85rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+        }
+
+        .checklist-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+
+        .checklist-icon.pass { background: rgba(0, 245, 160, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .checklist-icon.fail { background: rgba(255, 71, 87, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+
+        /* Output Copy Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--accent-cyan);
+            color: #ffffff;
+            padding: 0.85rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 242, 254, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 600;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: auto;
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="logo-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                VERIFIED PERFECT SECRECY SIMULATOR
+            </div>
+            <h1>One-Time Pad (OTP) Cryptography</h1>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs" role="tablist">
+            <button class="tab-btn active" onclick="switchTab('studio')" id="tab-studio-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                Encryption Studio
+            </button>
+            <button class="tab-btn" onclick="switchTab('visualizer')" id="tab-visualizer-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                Bitwise XOR Inspector
+            </button>
+            <button class="tab-btn" onclick="switchTab('vulnerability')" id="tab-vulnerability-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                Two-Time Pad Attack Lab
+            </button>
+            <button class="tab-btn" onclick="switchTab('comparison')" id="tab-comparison-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                Security Matrix
+            </button>
+        </nav>
+
+        <!-- TAB 1: ENCRYPTION & DECRYPTION STUDIO -->
+        <main id="tab-studio" class="tab-content active">
+            <div class="grid-2">
+                <!-- Encryption Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            OTP Encryption ($C = P \oplus K$)
+                        </div>
+                        <span id="enc-status" class="status-badge valid">Ready</span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="enc-plaintext">Plaintext ($P$)</label>
+                            <span class="meta-tag" id="enc-pt-len">Length: 12 chars</span>
+                        </div>
+                        <textarea id="enc-plaintext" oninput="handleEncryptInputs()" placeholder="Enter message to encrypt...">Hello World!</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="enc-key">Key Stream ($K$)</label>
+                            <span class="meta-tag" id="enc-key-len">Length: 12 chars</span>
+                        </div>
+                        <textarea id="enc-key" oninput="handleEncryptInputs()" placeholder="Key will be generated or typed here..."></textarea>
+                        
+                        <div class="btn-group" style="margin-top: 0.75rem;">
+                            <button class="btn btn-secondary btn-sm" onclick="generateRandomKeyForEncryption()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                                Generate Secure Key (CSPRNG)
+                            </button>
+                            <button class="btn btn-sm" onclick="matchKeyLength()">
+                                Auto-Match Length
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="key-warning-box" style="display: none; margin-bottom: 1rem;">
+                        <!-- Dynamic warning inserted by JS -->
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="enc-ciphertext">Ciphertext ($C = btoa(P \oplus K)$)</label>
+                            <span class="meta-tag">Base64 Encoded</span>
+                        </div>
+                        <input type="text" id="enc-ciphertext" readonly placeholder="Base64 ciphertext output...">
+                        <div class="btn-group" style="margin-top: 0.75rem;">
+                            <button class="btn btn-primary btn-sm" onclick="copyToClipboard('enc-ciphertext', 'Ciphertext copied!')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy Ciphertext
+                            </button>
+                            <button class="btn btn-sm" onclick="sendToDecryption()">
+                                Send to Decrypt Studio &rarr;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decryption Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+                            OTP Decryption ($P = C \oplus K$)
+                        </div>
+                        <span id="dec-status" class="status-badge valid">Ready</span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="dec-ciphertext">Ciphertext ($C$)</label>
+                            <span class="meta-tag" id="dec-ct-len">Length: 0 chars</span>
+                        </div>
+                        <textarea id="dec-ciphertext" oninput="handleDecryptInputs()" placeholder="Paste Base64 ciphertext here..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="dec-key">Secret Key ($K$)</label>
+                            <span class="meta-tag" id="dec-key-len">Length: 0 chars</span>
+                        </div>
+                        <textarea id="dec-key" oninput="handleDecryptInputs()" placeholder="Enter key matching ciphertext byte length..."></textarea>
+                    </div>
+
+                    <div id="dec-warning-box" style="display: none; margin-bottom: 1rem;">
+                        <!-- Dynamic warning inserted by JS -->
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="dec-plaintext">Decrypted Plaintext ($P$)</label>
+                            <span class="meta-tag">Restored Message</span>
+                        </div>
+                        <input type="text" id="dec-plaintext" readonly placeholder="Recovered message will appear here...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bitwise XOR Live Breakdown Matrix -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"></path><path d="M21 9H3"></path><path d="M21 15H3"></path><path d="M12 3v18"></path></svg>
+                        Character-by-Character XOR Matrix Breakdown
+                    </div>
+                    <span class="meta-tag">Live Bitwise XOR Evaluation</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="xor-matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Plaintext Char</th>
+                                <th>Plain ASCII</th>
+                                <th>Plain Binary (8-bit)</th>
+                                <th>Key Char</th>
+                                <th>Key ASCII</th>
+                                <th>Key Binary (8-bit)</th>
+                                <th>XOR Binary Result</th>
+                                <th>Cipher ASCII</th>
+                                <th>Inspect</th>
+                            </tr>
+                        </thead>
+                        <tbody id="xor-matrix-body">
+                            <!-- Matrix rows generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- TAB 2: BITWISE XOR INSPECTOR -->
+        <section id="tab-visualizer" class="tab-content">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        Bitwise XOR Logic Gate Visualizer
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-secondary" onclick="stepXorBit(-1)">&larr; Prev Bit</button>
+                        <button class="btn btn-sm btn-secondary" onclick="stepXorBit(1)">Next Bit &rarr;</button>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="align-items: center;">
+                    <div>
+                        <p style="color: var(--text-muted); margin-bottom: 1.2rem;">
+                            Bitwise Exclusive-OR (XOR, $\oplus$) is the fundamental cryptographic operation of One-Time Pad.
+                            When a binary bit of plaintext is XORed with a truly random key bit, the resulting bit has equal $50\%$ probability of being $0$ or $1$, regardless of the plaintext bit value!
+                        </p>
+                        
+                        <div class="form-group">
+                            <label for="inspect-char-index">Select Character Index to Inspect:</label>
+                            <select id="inspect-char-index" onchange="renderBitInspector()" style="width:100%; background:rgba(7,10,19,0.8); border:1px solid var(--border-color); color:#fff; padding:0.75rem; border-radius:10px; font-family:var(--font-mono);">
+                                <!-- Options populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- XOR Truth Table -->
+                        <div style="background: rgba(7, 10, 19, 0.6); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="color: var(--accent-cyan); margin-bottom: 0.75rem; font-size: 0.95rem;">XOR Bit Logic Rules:</h4>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-family: var(--font-mono); font-size: 0.85rem;">
+                                <div style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.75rem; border-radius: 6px;">0 &oplus; 0 = <strong>0</strong></div>
+                                <div style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.75rem; border-radius: 6px;">0 &oplus; 1 = <strong>1</strong></div>
+                                <div style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.75rem; border-radius: 6px;">1 &oplus; 0 = <strong>1</strong></div>
+                                <div style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.75rem; border-radius: 6px;">1 &oplus; 1 = <strong>0</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Bit Columns -->
+                    <div class="inspector-box">
+                        <div style="text-align: center;">
+                            <span id="inspect-char-title" class="status-badge valid" style="font-size: 1rem; padding: 0.4rem 1rem;">Char 'H' (72) &oplus; Key 'X' (88)</span>
+                        </div>
+
+                        <div id="bits-visual-container" class="bits-visual-grid">
+                            <!-- Populated by JS -->
+                        </div>
+
+                        <div style="text-align: center; font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-muted);" id="inspect-summary">
+                            Bitwise XOR preserves maximum information entropy.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: VULNERABILITY LAB (TWO-TIME PAD ATTACK) -->
+        <section id="tab-vulnerability" class="tab-content">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        Two-Time Pad Key Reuse Vulnerability Lab
+                    </div>
+                    <span class="status-badge invalid">Security Warning: Never Reuse Keys</span>
+                </div>
+
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    If the exact same OTP key $K$ is used to encrypt two different messages $P_1$ and $P_2$, the key cancels out when XORing ciphertexts:
+                    $$C_1 \oplus C_2 = (P_1 \oplus K) \oplus (P_2 \oplus K) = P_1 \oplus P_2$$
+                    An attacker can now perform <strong>Crib Dragging</strong> (testing candidate words) to completely reveal both original plaintexts!
+                </p>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="vuln-p1">Plaintext Message 1 ($P_1$):</label>
+                        <textarea id="vuln-p1" oninput="runKeyReuseLab()">Attack at dawn tomorrow!</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vuln-p2">Plaintext Message 2 ($P_2$):</label>
+                        <textarea id="vuln-p2" oninput="runKeyReuseLab()">Secret meet at midnight!</textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="label-row">
+                        <label for="vuln-key">Shared Reused Key ($K$):</label>
+                        <button class="btn btn-sm btn-secondary" onclick="generateReuseKey()">Generate Shared Key</button>
+                    </div>
+                    <input type="text" id="vuln-key" oninput="runKeyReuseLab()" placeholder="Shared key stream...">
+                </div>
+
+                <!-- Combined XOR Result -->
+                <div class="crib-result-card">
+                    <h4 style="color: var(--accent-amber); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        XOR of Ciphertexts ($C_1 \oplus C_2 = P_1 \oplus P_2$)
+                    </h4>
+                    <p style="font-family: var(--font-mono); font-size: 0.95rem; color: var(--accent-green); word-break: break-all;" id="c1-xor-c2-hex">
+                        000000...
+                    </p>
+                </div>
+
+                <!-- Interactive Crib Dragging Tool -->
+                <div style="margin-top: 2rem;">
+                    <h3 class="card-title" style="font-size: 1.1rem; margin-bottom: 1rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        Interactive Crib Dragging Attacker Console
+                    </h3>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="crib-input">Guess Word / Crib ($W$):</label>
+                            <input type="text" id="crib-input" value=" at " oninput="runCribDragging()" placeholder="Try common words e.g. ' the ', ' at ', 'Secret'">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="crib-offset">Crib Position Offset:</label>
+                            <input type="range" id="crib-offset" min="0" max="20" value="6" oninput="runCribDragging()" style="width: 100%; accent-color: var(--accent-cyan);">
+                            <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+                                <span>Offset: <strong id="crib-offset-val" style="color: var(--accent-cyan);">6</strong></span>
+                                <span>Drag slider to scan message length</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem;">
+                        <div style="margin-bottom: 0.75rem; font-size: 0.9rem;">
+                            <strong>Decrypted Fragment of Other Message:</strong>
+                        </div>
+                        <div style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-cyan); background: rgba(0, 242, 254, 0.08); padding: 0.75rem 1rem; border-radius: 8px; border-left: 4px solid var(--accent-cyan);" id="crib-output-text">
+                            <!-- JS populated -->
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;" id="crib-explanation">
+                            If your crib guess is correct for $P_1$, the resulting text will reveal readable plaintext words from $P_2$!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: CIPHER SECURITY COMPARISON MATRIX -->
+        <section id="tab-comparison" class="tab-content">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                        Cryptographic Algorithm Security Comparison Matrix
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Dimension</th>
+                                <th>One-Time Pad (OTP)</th>
+                                <th>AES-256 (Symmetric)</th>
+                                <th>RSA-4096 (Asymmetric)</th>
+                                <th>Caesar Cipher (Classical)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Perfect Secrecy (Unbreakable)</td>
+                                <td><span class="check-icon">&#10004;</span> Mathematical Proof</td>
+                                <td><span class="cross-icon">&#10008;</span> Computational Only</td>
+                                <td><span class="cross-icon">&#10008;</span> Computational Only</td>
+                                <td><span class="cross-icon">&#10008;</span> Trivial Frequency Attack</td>
+                            </tr>
+                            <tr>
+                                <td>Quantum Computer Resistance</td>
+                                <td><span class="check-icon">&#10004;</span> 100% Quantum Immune</td>
+                                <td><span class="warn-icon">&#9888;</span> Reduced by Grover's</td>
+                                <td><span class="cross-icon">&#10008;</span> Broken by Shor's</td>
+                                <td><span class="cross-icon">&#10008;</span> Broken Instantly</td>
+                            </tr>
+                            <tr>
+                                <td>Required Key Length</td>
+                                <td>Length = Message Length</td>
+                                <td>Fixed 256 bits</td>
+                                <td>Fixed 4096 bits</td>
+                                <td>1 Shift Number (1-25)</td>
+                            </tr>
+                            <tr>
+                                <td>Key Reuse Safety</td>
+                                <td><span class="cross-icon">&#10008;</span> Fatal (Destroys Security)</td>
+                                <td><span class="check-icon">&#10004;</span> Safe with IV / Nonce</td>
+                                <td><span class="check-icon">&#10004;</span> Safe for Public Key</td>
+                                <td><span class="cross-icon">&#10008;</span> Trivial Frequency Attack</td>
+                            </tr>
+                            <tr>
+                                <td>Key Distribution Difficulty</td>
+                                <td><span class="warn-icon">&#9888;</span> Extremely High</td>
+                                <td>Moderate (KDF / ECDH)</td>
+                                <td>Easy (Public Key PKI)</td>
+                                <td>Trivial</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Shannon's 4 Rules for Perfect Secrecy -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                        Claude Shannon's 4 Rules for Perfect Secrecy (1949)
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-icon pass">&#10004;</div>
+                    <div>
+                        <strong style="color: var(--text-main);">1. Truly Random Key Stream (CSPRNG or Physical Entropy)</strong>
+                        <p style="color: var(--text-muted); font-size: 0.88rem;">
+                            The key must be generated using true randomness (e.g. atmospheric noise or <code>crypto.getRandomValues()</code>). Pseudo-random generators (PRNGs like <code>Math.random()</code>) break perfect secrecy.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-icon pass">&#10004;</div>
+                    <div>
+                        <strong style="color: var(--text-main);">2. Key Length Equal or Greater than Plaintext ($|K| \ge |P|$)</strong>
+                        <p style="color: var(--text-muted); font-size: 0.88rem;">
+                            The secret key stream must contain at least as many random characters as the message being encrypted. Short keys allowed to repeat violate Shannon entropy.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-icon pass">&#10004;</div>
+                    <div>
+                        <strong style="color: var(--text-main);">3. Key Used Exactly Once (One-Time Pad)</strong>
+                        <p style="color: var(--text-muted); font-size: 0.88rem;">
+                            Every key stream must be destroyed immediately after a single use. Reusing a key even once enables two-time pad crib dragging attacks ($C_1 \oplus C_2 = P_1 \oplus P_2$).
+                        </p>
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-icon pass">&#10004;</div>
+                    <div>
+                        <strong style="color: var(--text-main);">4. Complete Confidentiality of Key Stream</strong>
+                        <p style="color: var(--text-muted); font-size: 0.88rem;">
+                            The key stream must be transmitted over a 100% secure out-of-band channel and kept strictly secret between sender and receiver.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <span id="toast-msg">Action completed!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>One-Time Pad Cryptography Simulator &bull; Implemented with Web Crypto API & Vanilla JS &bull; Designed for Educational Excellence</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Global state for live sync between components
+        let currentPlaintext = "Hello World!";
+        let currentKey = "";
+
+        // Character Set for CSPRNG Key Generation (Printable ASCII 33-126)
+        const KEY_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`tab-${tabId}-btn`).classList.add('active');
+
+            if (tabId === 'visualizer') {
+                populateInspectorOptions();
+                renderBitInspector();
+            } else if (tabId === 'vulnerability') {
+                runKeyReuseLab();
+            }
+        }
+
+        // Secure Random Key Generator using Web Crypto API
+        function generateSecureRandomKey(length) {
+            if (length <= 0) return "";
+            const randomBytes = new Uint8Array(length);
+            window.crypto.getRandomValues(randomBytes);
+            
+            let key = "";
+            for (let i = 0; i < length; i++) {
+                key += KEY_CHARSET[randomBytes[i] % KEY_CHARSET.length];
+            }
+            return key;
+        }
+
+        // Encryption Core Function
+        function encryptOTP(plaintext, key) {
+            if (!plaintext || !key) return "";
+            if (key.length < plaintext.length) {
+                throw new Error(`Key length (${key.length}) is shorter than plaintext length (${plaintext.length})`);
+            }
+
+            let ciphertextRaw = "";
+            for (let i = 0; i < plaintext.length; i++) {
+                const pChar = plaintext.charCodeAt(i);
+                const kChar = key.charCodeAt(i);
+                ciphertextRaw += String.fromCharCode(pChar ^ kChar);
+            }
+
+            // Encode to Base64 for safe string transport
+            return btoa(ciphertextRaw);
+        }
+
+        // Decryption Core Function
+        function decryptOTP(ciphertextBase64, key) {
+            if (!ciphertextBase64 || !key) return "";
+            
+            let ciphertextRaw = "";
+            try {
+                ciphertextRaw = atob(ciphertextBase64);
+            } catch (e) {
+                throw new Error("Invalid Base64 ciphertext encoding");
+            }
+
+            if (key.length < ciphertextRaw.length) {
+                throw new Error(`Key length (${key.length}) is shorter than decoded ciphertext length (${ciphertextRaw.length})`);
+            }
+
+            let plaintext = "";
+            for (let i = 0; i < ciphertextRaw.length; i++) {
+                const cChar = ciphertextRaw.charCodeAt(i);
+                const kChar = key.charCodeAt(i);
+                plaintext += String.fromCharCode(cChar ^ kChar);
+            }
+
+            return plaintext;
+        }
+
+        // Event Handlers for Encryption Inputs
+        function handleEncryptInputs() {
+            const ptEl = document.getElementById('enc-plaintext');
+            const keyEl = document.getElementById('enc-key');
+            const statusEl = document.getElementById('enc-status');
+            const warningBox = document.getElementById('key-warning-box');
+            const ctEl = document.getElementById('enc-ciphertext');
+
+            currentPlaintext = ptEl.value;
+            currentKey = keyEl.value;
+
+            document.getElementById('enc-pt-len').innerText = `Length: ${currentPlaintext.length} chars`;
+            document.getElementById('enc-key-len').innerText = `Length: ${currentKey.length} chars`;
+
+            if (currentKey.length === 0) {
+                statusEl.innerText = "Key Missing";
+                statusEl.className = "status-badge warning";
+                warningBox.style.display = "block";
+                warningBox.innerHTML = `
+                    <div style="background: rgba(255,159,67,0.12); border: 1px solid rgba(255,159,67,0.3); color: var(--accent-amber); padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                        <strong>Warning:</strong> Key stream is empty. Generate or enter a key equal in length to your message.
+                    </div>`;
+                ctEl.value = "";
+                renderXorMatrix([], []);
+                return;
+            }
+
+            if (currentKey.length < currentPlaintext.length) {
+                statusEl.innerText = "Key Too Short!";
+                statusEl.className = "status-badge invalid";
+                warningBox.style.display = "block";
+                warningBox.innerHTML = `
+                    <div style="background: rgba(255,71,87,0.12); border: 1px solid rgba(255,71,87,0.3); color: var(--accent-red); padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                        <strong>Security Violation:</strong> Key length (${currentKey.length}) is shorter than Plaintext length (${currentPlaintext.length}). Shannon Perfect Secrecy requires |Key| &ge; |Plaintext|.
+                    </div>`;
+                ctEl.value = "";
+                renderXorMatrix([], []);
+                return;
+            }
+
+            // Valid setup
+            warningBox.style.display = "none";
+            statusEl.innerText = "Encrypted (Secure)";
+            statusEl.className = "status-badge valid";
+
+            try {
+                const ciphertext = encryptOTP(currentPlaintext, currentKey);
+                ctEl.value = ciphertext;
+                renderXorMatrix(currentPlaintext, currentKey);
+            } catch (err) {
+                statusEl.innerText = "Error";
+                statusEl.className = "status-badge invalid";
+            }
+        }
+
+        function generateRandomKeyForEncryption() {
+            const ptLength = document.getElementById('enc-plaintext').value.length || 12;
+            const newKey = generateSecureRandomKey(ptLength);
+            document.getElementById('enc-key').value = newKey;
+            handleEncryptInputs();
+            showToast("New CSPRNG Key Generated!");
+        }
+
+        function matchKeyLength() {
+            const ptLength = document.getElementById('enc-plaintext').value.length;
+            const currentKeyVal = document.getElementById('enc-key').value;
+            if (currentKeyVal.length < ptLength) {
+                const missingLength = ptLength - currentKeyVal.length;
+                document.getElementById('enc-key').value += generateSecureRandomKey(missingLength);
+            } else if (currentKeyVal.length > ptLength) {
+                document.getElementById('enc-key').value = currentKeyVal.substring(0, ptLength);
+            }
+            handleEncryptInputs();
+            showToast("Key length matched to Plaintext!");
+        }
+
+        function sendToDecryption() {
+            const ct = document.getElementById('enc-ciphertext').value;
+            const key = document.getElementById('enc-key').value;
+            document.getElementById('dec-ciphertext').value = ct;
+            document.getElementById('dec-key').value = key;
+            handleDecryptInputs();
+            switchTab('studio');
+            document.getElementById('dec-ciphertext').scrollIntoView({ behavior: 'smooth' });
+            showToast("Ciphertext and Key sent to Decrypt Studio!");
+        }
+
+        function handleDecryptInputs() {
+            const ct = document.getElementById('dec-ciphertext').value.trim();
+            const key = document.getElementById('dec-key').value;
+            const statusEl = document.getElementById('dec-status');
+            const ptOut = document.getElementById('dec-plaintext');
+            const warningBox = document.getElementById('dec-warning-box');
+
+            document.getElementById('dec-ct-len').innerText = `Length: ${ct.length} chars`;
+            document.getElementById('dec-key-len').innerText = `Length: ${key.length} chars`;
+
+            if (!ct || !key) {
+                statusEl.innerText = "Ready";
+                statusEl.className = "status-badge valid";
+                warningBox.style.display = "none";
+                ptOut.value = "";
+                return;
+            }
+
+            try {
+                const restoredPt = decryptOTP(ct, key);
+                ptOut.value = restoredPt;
+                statusEl.innerText = "Decrypted Successfully";
+                statusEl.className = "status-badge valid";
+                warningBox.style.display = "none";
+            } catch (e) {
+                ptOut.value = "";
+                statusEl.innerText = "Decryption Error";
+                statusEl.className = "status-badge invalid";
+                warningBox.style.display = "block";
+                warningBox.innerHTML = `
+                    <div style="background: rgba(255,71,87,0.12); border: 1px solid rgba(255,71,87,0.3); color: var(--accent-red); padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                        <strong>Error:</strong> ${e.message}
+                    </div>`;
+            }
+        }
+
+        // Render Bitwise Matrix Table
+        function renderXorMatrix(plaintext, key) {
+            const tbody = document.getElementById('xor-matrix-body');
+            tbody.innerHTML = "";
+
+            if (!plaintext || !key || key.length < plaintext.length) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-dim); padding: 1.5rem;">Enter valid Plaintext and matching Key to render XOR matrix.</td></tr>`;
+                return;
+            }
+
+            for (let i = 0; i < plaintext.length; i++) {
+                const pCode = plaintext.charCodeAt(i);
+                const kCode = key.charCodeAt(i);
+                const xorCode = pCode ^ kCode;
+
+                const pBin = pCode.toString(2).padStart(8, '0');
+                const kBin = kCode.toString(2).padStart(8, '0');
+                const xorBin = xorCode.toString(2).padStart(8, '0');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${i}</td>
+                    <td><span class="char-pill">${escapeHtml(plaintext[i])}</span></td>
+                    <td>${pCode}</td>
+                    <td class="binary-highlight">${pBin}</td>
+                    <td><span class="char-pill">${escapeHtml(key[i])}</span></td>
+                    <td>${kCode}</td>
+                    <td class="binary-highlight">${kBin}</td>
+                    <td class="xor-result-highlight">${xorBin}</td>
+                    <td>${xorCode} (${escapeHtml(String.fromCharCode(xorCode))})</td>
+                    <td><button class="btn btn-sm" onclick="inspectCharAtIndex(${i})">Inspect Bitwise &rarr;</button></td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Inspector Tab Logic
+        function populateInspectorOptions() {
+            const select = document.getElementById('inspect-char-index');
+            select.innerHTML = "";
+            for (let i = 0; i < currentPlaintext.length; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.text = `Index ${i}: '${currentPlaintext[i]}' XOR '${currentKey[i] || '?'}'`;
+                select.appendChild(option);
+            }
+        }
+
+        function inspectCharAtIndex(idx) {
+            switchTab('visualizer');
+            const select = document.getElementById('inspect-char-index');
+            select.value = idx;
+            renderBitInspector();
+        }
+
+        function renderBitInspector() {
+            const idx = parseInt(document.getElementById('inspect-char-index').value) || 0;
+            const container = document.getElementById('bits-visual-container');
+            container.innerHTML = "";
+
+            if (!currentPlaintext || !currentKey || idx >= currentPlaintext.length || idx >= currentKey.length) {
+                document.getElementById('inspect-char-title').innerText = "Select valid character pair";
+                return;
+            }
+
+            const pCode = currentPlaintext.charCodeAt(idx);
+            const kCode = currentKey.charCodeAt(idx);
+            const xorCode = pCode ^ kCode;
+
+            const pBin = pCode.toString(2).padStart(8, '0');
+            const kBin = kCode.toString(2).padStart(8, '0');
+            const xorBin = xorCode.toString(2).padStart(8, '0');
+
+            document.getElementById('inspect-char-title').innerText = 
+                `Char '${currentPlaintext[idx]}' (ASCII ${pCode}) \u2295 Key '${currentKey[idx]}' (ASCII ${kCode})`;
+
+            for (let b = 0; b < 8; b++) {
+                const pBit = pBin[b];
+                const kBit = kBin[b];
+                const xBit = xorBin[b];
+
+                const col = document.createElement('div');
+                col.className = 'bit-column';
+                col.innerHTML = `
+                    <span style="font-size:0.7rem; color:var(--text-dim)">Bit ${7-b}</span>
+                    <div class="bit-val bit-p">${pBit}</div>
+                    <span class="gate-icon">&oplus;</span>
+                    <div class="bit-val bit-k">${kBit}</div>
+                    <span class="gate-icon">=</span>
+                    <div class="bit-val bit-xor">${xBit}</div>
+                `;
+                container.appendChild(col);
+            }
+        }
+
+        function stepXorBit(dir) {
+            const select = document.getElementById('inspect-char-index');
+            let val = parseInt(select.value) + dir;
+            if (val >= 0 && val < select.options.length) {
+                select.value = val;
+                renderBitInspector();
+            }
+        }
+
+        // Two-Time Pad Vulnerability Lab
+        function generateReuseKey() {
+            const p1Len = document.getElementById('vuln-p1').value.length;
+            const p2Len = document.getElementById('vuln-p2').value.length;
+            const maxLen = Math.max(p1Len, p2Len, 15);
+            const key = generateSecureRandomKey(maxLen);
+            document.getElementById('vuln-key').value = key;
+            runKeyReuseLab();
+        }
+
+        function runKeyReuseLab() {
+            const p1 = document.getElementById('vuln-p1').value;
+            const p2 = document.getElementById('vuln-p2').value;
+            let key = document.getElementById('vuln-key').value;
+
+            if (!key) {
+                key = generateSecureRandomKey(Math.max(p1.length, p2.length, 12));
+                document.getElementById('vuln-key').value = key;
+            }
+
+            const minLen = Math.min(p1.length, p2.length, key.length);
+            let xorHex = "";
+
+            for (let i = 0; i < minLen; i++) {
+                const c1 = p1.charCodeAt(i) ^ key.charCodeAt(i);
+                const c2 = p2.charCodeAt(i) ^ key.charCodeAt(i);
+                const c1_xor_c2 = c1 ^ c2; // K cancels out!
+                xorHex += c1_xor_c2.toString(16).padStart(2, '0') + " ";
+            }
+
+            document.getElementById('c1-xor-c2-hex').innerText = xorHex || "No overlapping text";
+            
+            // Set max range for crib offset slider
+            const slider = document.getElementById('crib-offset');
+            slider.max = Math.max(0, minLen - 1);
+
+            runCribDragging();
+        }
+
+        function runCribDragging() {
+            const p1 = document.getElementById('vuln-p1').value;
+            const p2 = document.getElementById('vuln-p2').value;
+            const key = document.getElementById('vuln-key').value;
+            const crib = document.getElementById('crib-input').value;
+            const offset = parseInt(document.getElementById('crib-offset').value) || 0;
+
+            document.getElementById('crib-offset-val').innerText = offset;
+
+            const minLen = Math.min(p1.length, p2.length, key.length);
+            if (crib.length === 0 || offset + crib.length > minLen) {
+                document.getElementById('crib-output-text').innerText = "[Crib exceeds message length boundaries]";
+                return;
+            }
+
+            // Calculate (C1 ^ C2) ^ Crib
+            let revealedOtherText = "";
+            for (let i = 0; i < crib.length; i++) {
+                const idx = offset + i;
+                const c1 = p1.charCodeAt(idx) ^ key.charCodeAt(idx);
+                const c2 = p2.charCodeAt(idx) ^ key.charCodeAt(idx);
+                const c1_xor_c2 = c1 ^ c2;
+                const cribByte = crib.charCodeAt(i);
+                const revealedByte = c1_xor_c2 ^ cribByte;
+                revealedOtherText += String.fromCharCode(revealedByte);
+            }
+
+            document.getElementById('crib-output-text').innerText = `"${revealedOtherText}"`;
+        }
+
+        // Copy Toast Utility
+        function copyToClipboard(elemId, toastText) {
+            const input = document.getElementById(elemId);
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            showToast(toastText);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize App State
+        window.addEventListener('DOMContentLoaded', () => {
+            generateRandomKeyForEncryption();
+            generateReuseKey();
+        });
+    </script>
+</body>
+</html>
